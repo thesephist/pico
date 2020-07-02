@@ -24,21 +24,13 @@ function fmtDate(date) {
     return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
-const debounce = (fn, delayMillis) => {
-    let lastRun = 0;
+// only fire fn once it hasn't been called in delay ms
+const bounce = (fn, delay) => {
     let to = null;
     return (...args) => {
+        const bfn = () => fn(...args);
         clearTimeout(to);
-        const now = Date.now();
-        const dfn = () => {
-            lastRun = now;
-            fn(...args);
-        }
-        if (now - lastRun > delayMillis) {
-            dfn();
-        } else {
-            to = setTimeout(dfn, delayMillis);
-        }
+        to = setTimeout(bfn, delay);
     }
 }
 
@@ -61,16 +53,51 @@ class BlockStore extends StoreOf(Block) {
 class BlockItem extends Component {
     init(record, removeCallback) {
         this.removeCallback = removeCallback;
+        this._collapsed = false;
+
+        this.handleHeadingInput = evt => this.handleInput('h', evt);
+        this.handleBodyInput = evt => this.handleInput('b', evt);
+        this.handleToggleCollapse = this.handleToggleCollapse.bind(this);
+        this.handleRemove = this.handleRemove.bind(this);
+
         this.bind(record, data => this.render(data));
     }
-    compose({ h, b }) {
+    handleInput(prop, evt) {
+        this.record.update({[prop]: evt.target.value})
+    }
+    handleToggleCollapse() {
+        this._collapsed = !this._collapsed;
+        this.render();
+    }
+    handleRemove() {
+        const result = confirm('Remove?')
+        if (!result) {
+            return;
+        }
+
+        this.removeCallback();
+    }
+    compose({h, b}) {
         return jdom`<div class="block">
             <div class="block-heading">
-                <input value="${h}" type="text" />
+                <input value="${h}" type="text"
+                    placeholder="heading"
+                    oninput="${this.handleHeadingInput}" />
+                <div class="button-bar">
+                    <button title="Expand / Collapse"
+                        onclick="${this.handleToggleCollapse}">
+                        ${this._collapsed ? 'E' : 'C'}
+                    </button>
+                    <button title="Remove"
+                        onclick="${this.handleRemove}">R</button>
+                </div>
             </div>
-            <div class="block-body">
-                <textarea value="${b}" />
-            </div>
+            ${this._collapsed ? null : jdom`<div class="block-body">
+                <textarea value="${b}"
+                    placeholder="write..."
+                    oninput="${this.handleBodyInput}" />
+                <div class="p-heights ${b.endsWith('\n') ? 'end-line' : ''}>${b}</div>
+            </div>`}
         </div>`;
     }
 }
@@ -91,9 +118,11 @@ class App extends Component {
         this._loading = false;
         this._error = false;
 
-        this.save = debounce(this.save.bind(this), 1200);
+        this.save = bounce(this.save.bind(this), 800);
 
-        this.store.fetch();
+        this.store.fetch().then(() => {
+            this.bind(this.store, this.save);
+        });
     }
     save() {
         this._loading = true;
@@ -110,9 +139,9 @@ class App extends Component {
         });
     }
     compose() {
-        return jdom`<main class="app">
+        return jdom`<main class="app" oninput="${this.save}">
             <h1>${fmtDate(new Date())}</h1>
-            <button onclick="${this.save}">Save</button>
+            <button onclick="${() => this.store.create({h: '', b: ''})}">Add</button>
             ${this.list.node}
         </main>`;
     }
