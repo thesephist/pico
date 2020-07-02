@@ -1,3 +1,7 @@
+# pico
+data.json
+node_modules/
+
 # Binaries for programs and plugins
 *.exe
 *.exe~

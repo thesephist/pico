@@ -1,0 +1,15 @@
+{
+  "name": "pico",
+  "version": "0.1.0",
+  "description": "Notes, todos, not much else.",
+  "main": "static/js/main.js",
+  "repository": "git@github.com:thesephist/pico.git",
+  "author": "Linus Lee <linus@thesephist.com>",
+  "license": "MIT",
+  "scripts": {
+    "fmt": "eslint ./static/js/main.js --fix"
+  },
+  "devDependencies": {
+    "eslint": "^7.3.1"
+  }
+}

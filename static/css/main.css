@@ -1,0 +1,19 @@
+html,
+body {
+    margin: 0;
+    /* TODO: Barlow? */
+    font-family: system-ui, sans-serif;
+    font-size: 18px;
+}
+
+main.app {
+    max-width: 700px;
+    margin: 1em auto;
+    width: calc(100% - 16px);
+}
+
+@media only screen and (min-width: 730px) {
+    main.app {
+        width: 70%;
+    }
+}
