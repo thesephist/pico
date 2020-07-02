@@ -93,7 +93,8 @@ class BlockItem extends Component {
         this.setCollapsed(!this._collapsed);
     }
     handleRemove() {
-        const result = this.record.get('b').trim() ? confirm('Remove?') : true;
+        const isEmpty = !(this.record.get('h').trim() + this.record.get('b').trim());
+        const result = isEmpty ? true : confirm('Remove?');
         if (!result) {
             return;
         }
@@ -141,12 +142,15 @@ class App extends Component {
         this._loading = false;
         this._error = false;
         this._lastSaved = new Date();
+        this._lastSavedState = '';
 
         this.handleAllToggleCollapsed = this.handleAllToggleCollapsed.bind(this);
         this.save = bounce(this.save.bind(this), 800);
 
         this.store.fetch().then(() => {
+            this._lastSavedState = JSON.stringify(this.store.serialize());
             this.bind(this.store, this.save);
+            this.render();
         });
 
         this._interval = setInterval(this.render.bind(this), 60 * 1000);
@@ -163,6 +167,12 @@ class App extends Component {
         this.render();
     }
     save() {
+        const thisSavedState = JSON.stringify(this.store.serialize());
+        if (this._lastSavedState === thisSavedState) {
+            return;
+        }
+
+        this._lastSavedState = thisSavedState;
         this._loading = true;
         this.render();
         this.store.save().then(() => {
@@ -182,12 +192,21 @@ class App extends Component {
         return this.list.components.every(c => c.isCollapsed());
     }
     compose() {
+        const hour = new Date().getHours();
+        if (hour < 8 || hour > 20) {
+            document.body.classList.add('dark');
+            document.documentElement.style.background = '#222';
+        } else {
+            document.body.classList.remove('dark');
+            document.documentElement.style.background = '#fafafa';
+        }
+
         return jdom`<main class="app" oninput="${this.save}">
             <header>
                 <div class="header-left">
                     <h1>${fmtDate(new Date())}</h1>
                     <p class="sub">
-                        ${this._loading ? 'Saving...' : 'Saved ' + relativeDate(this._lastSaved)}
+                        ${this._loading ? 'Saving...' : `Saved ${relativeDate(this._lastSaved)}, ${this._lastSavedState.length}b`}
                     </div>
                 </div>
                 <div class="button-bar">
@@ -201,6 +220,14 @@ class App extends Component {
             </header>
             ${this._error ? jdom`<p><em>${this._error}</em></p>` : null}
             ${this.list.node}
+            <footer>
+                <p class="sub">
+                    Pico is built with
+                    <a href="https://github.com/thesephist/torus" target="_blank">Torus</a>
+                    and open-source on
+                    <a href="https://github.com/thesephist/pico" target="_blank">GitHub</a>.
+                </p>
+            </footer>
         </main>`;
     }
 }
