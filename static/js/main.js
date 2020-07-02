@@ -74,6 +74,7 @@ class BlockItem extends Component {
 
         this.handleHeadingInput = evt => this.handleInput('h', evt);
         this.handleBodyInput = evt => this.handleInput('b', evt);
+        this.handleKeydown = this.handleKeydown.bind(this);
         this.handleToggleCollapse = this.handleToggleCollapse.bind(this);
         this.handleRemove = this.handleRemove.bind(this);
 
@@ -88,6 +89,19 @@ class BlockItem extends Component {
     }
     handleInput(prop, evt) {
         this.record.update({[prop]: evt.target.value})
+    }
+    handleKeydown(evt) {
+        if (evt.key === 'Tab') {
+            evt.preventDefault();
+            const idx = evt.target.selectionStart;
+            if (idx !== null) {
+                const front = this.record.get('b').substr(0, idx);
+                const back = this.record.get('b').substr(idx);
+                this.record.update({b: front + '    ' + back});
+                this.render();
+                evt.target.setSelectionRange(idx + 4, idx + 4);
+            }
+        }
     }
     handleToggleCollapse() {
         this.setCollapsed(!this._collapsed);
@@ -119,6 +133,7 @@ class BlockItem extends Component {
             ${this._collapsed ? null : jdom`<div class="block-body">
                 <textarea value="${b}"
                     placeholder="write..."
+                    onkeydown="${this.handleKeydown}"
                     oninput="${this.handleBodyInput}" />
                 <div class="p-heights ${b.endsWith('\n') ? 'end-line' : ''}>${b}</div>
             </div>`}
