@@ -24,6 +24,23 @@ function fmtDate(date) {
     return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
+function relativeDate(date) {
+    const delta = (new Date() - date) / 1000;
+    if (delta < 60) {
+        return '< 1 min ago';
+    } else if (delta < 3600) {
+        return `${~~(delta / 60)} min ago`;
+    } else if (delta < 86400) {
+        return `${~~(delta / 3600)} hr ago`;
+    } else if (delta < 86400 * 2) {
+        return 'yesterday';
+    } else if (delta < 86400 * 3) {
+        return '2 days ago';
+    } else {
+        return date.toLocaleDateString() + ' ' + formatTime(date);
+    }
+}
+
 // only fire fn once it hasn't been called in delay ms
 const bounce = (fn, delay) => {
     let to = null;
@@ -62,15 +79,21 @@ class BlockItem extends Component {
 
         this.bind(record, data => this.render(data));
     }
+    isCollapsed() {
+        return this._collapsed;
+    }
+    setCollapsed(c) {
+        this._collapsed = c;
+        this.render();
+    }
     handleInput(prop, evt) {
         this.record.update({[prop]: evt.target.value})
     }
     handleToggleCollapse() {
-        this._collapsed = !this._collapsed;
-        this.render();
+        this.setCollapsed(!this._collapsed);
     }
     handleRemove() {
-        const result = confirm('Remove?')
+        const result = this.record.get('b').trim() ? confirm('Remove?') : true;
         if (!result) {
             return;
         }
@@ -84,7 +107,7 @@ class BlockItem extends Component {
                     placeholder="heading"
                     oninput="${this.handleHeadingInput}" />
                 <div class="button-bar">
-                    <button title="Expand / Collapse"
+                    <button title="Expand/collapse"
                         onclick="${this.handleToggleCollapse}">
                         ${this._collapsed ? 'E' : 'C'}
                     </button>
@@ -117,31 +140,66 @@ class App extends Component {
 
         this._loading = false;
         this._error = false;
+        this._lastSaved = new Date();
 
+        this.handleAllToggleCollapsed = this.handleAllToggleCollapsed.bind(this);
         this.save = bounce(this.save.bind(this), 800);
 
         this.store.fetch().then(() => {
             this.bind(this.store, this.save);
         });
+
+        this._interval = setInterval(this.render.bind(this), 60 * 1000);
+    }
+    remove() {
+        super.remove();
+        clearInterval(this._interval);
+    }
+    handleAllToggleCollapsed() {
+        const allCollapsed = this.isAllCollapsed();
+        for (const item of this.list.components) {
+            item.setCollapsed(!allCollapsed);
+        }
+        this.render();
     }
     save() {
         this._loading = true;
         this.render();
         this.store.save().then(() => {
+            this._lastSaved = new Date();
             this._error = false;
-            this._loading = false;
-            this.render();
         }).catch(e => {
-            console.error(e);
             this._error = e.toString();
-            this._loading = false;
-            this.render();
+        }).finally(() => {
+            setTimeout(() => {
+                this._loading = false;
+                this.render();
+                // adding artificial delay makes this easy to see as a user.
+            }, 500);
         });
+    }
+    isAllCollapsed() {
+        return this.list.components.every(c => c.isCollapsed());
     }
     compose() {
         return jdom`<main class="app" oninput="${this.save}">
-            <h1>${fmtDate(new Date())}</h1>
-            <button onclick="${() => this.store.create({h: '', b: ''})}">Add</button>
+            <header>
+                <div class="header-left">
+                    <h1>${fmtDate(new Date())}</h1>
+                    <p class="sub">
+                        ${this._loading ? 'Saving...' : 'Saved ' + relativeDate(this._lastSaved)}
+                    </div>
+                </div>
+                <div class="button-bar">
+                    <button title="Expand/collapse all"
+                        onclick="${this.handleAllToggleCollapsed}">
+                        ${this.isAllCollapsed() ? 'Ea' : 'Ca'}
+                    </button>
+                    <button title="Add block"
+                        onclick="${() => this.store.create({h: '', b: ''})}">A</button>
+                </div>
+            </header>
+            ${this._error ? jdom`<p><em>${this._error}</em></p>` : null}
             ${this.list.node}
         </main>`;
     }

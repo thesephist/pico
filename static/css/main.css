@@ -1,7 +1,6 @@
 html,
 body {
     margin: 0;
-    /* TODO: Barlow? */
     font-family: 'Barlow', system-ui, sans-serif;
     font-size: 18px;
 
@@ -18,8 +17,25 @@ body.dark {
     --bg: #222;
 }
 
-h1 {
+header {
     margin-top: 0;
+    margin-bottom: 2em;
+}
+
+.header-left {
+    flex-grow: 1;
+}
+
+h1 {
+    margin: 0;
+    font-weight: normal;
+}
+
+p.sub {
+    opacity: .5;
+    font-size: .8em;
+    margin: 0;
+    margin-top: .8em;
 }
 
 input,
@@ -46,6 +62,7 @@ main.app {
     width: 100%;
 }
 
+header,
 .block-heading,
 .button-bar {
     display: flex;
@@ -87,6 +104,10 @@ button:hover {
     color: var(--bg);
 }
 
+button:active {
+    opacity: .6;
+}
+
 textarea, .p-heights {
     box-sizing: border-box;
     width: 100%;
@@ -112,4 +133,5 @@ textarea {
     left: 0;
     right: 0;
     bottom: 0;
+    overflow: hidden;
 }
